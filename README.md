@@ -147,6 +147,9 @@ AptCare_BE/
 2. **Cấu hình biến môi trường**
    
    Tạo file `.env` trong thư mục gốc với các biến sau:
+   
+   > ⚠️ **Lưu ý bảo mật / Security Warning**: File `.env` chứa thông tin nhạy cảm như mật khẩu và API keys. Đảm bảo file này đã được thêm vào `.gitignore` và KHÔNG commit lên repository. Thay thế các giá trị mẫu bằng thông tin thực tế của bạn.
+   
    ```env
    # Database
    DB_CONNECTION_STRING=Host=localhost;Database=aptcare;Username=postgres;Password=yourpassword
