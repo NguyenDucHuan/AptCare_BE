@@ -17,6 +17,7 @@ using AptCare.Service.Dtos.FeedbackDtos;
 using AptCare.Service.Dtos.InspectionReporDtos;
 using AptCare.Service.Dtos.InvoiceDtos;
 using AptCare.Service.Dtos.IssueDto;
+using AptCare.Service.Dtos.MaintenanceScheduleDtos;
 using AptCare.Service.Dtos.NotificationDtos;
 using AptCare.Service.Dtos.RepairReportDtos;
 using AptCare.Service.Dtos.RepairRequestDtos;
@@ -195,14 +196,23 @@ namespace AptCare.Api.MapperProfile
             CreateMap<RepairRequest, RepairRequestDto>()
                 .ForMember(d => d.ChildRequestIds, o => o.MapFrom(s => s.ChildRequests != null ? s.ChildRequests.Select(x => x.RepairRequestId) : null))
                 .ForMember(d => d.Status, o => o.MapFrom(s => s.RequestTrackings.OrderByDescending(x => x.UpdatedAt).First().Status.ToString()))
-                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea));
+                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea))
+                .ForMember(d => d.TechniqueId, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.RequiredTechniqueId))
+                .ForMember(d => d.RequiredTechnician, o => o.MapFrom(s =>  s.MaintenanceSchedule == null ? null : (int?) s.MaintenanceSchedule.RequiredTechnicians))
+                .ForMember(d => d.EstimatedDuration, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : (double?)s.MaintenanceSchedule.EstimatedDuration));
             CreateMap<RepairRequest, RepairRequestDetailDto>()
                 .ForMember(d => d.ChildRequestIds, o => o.MapFrom(s => s.ChildRequests != null ? s.ChildRequests.Select(x => x.RepairRequestId) : null))
-                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea));
+                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea))
+                .ForMember(d => d.TechniqueId, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.RequiredTechniqueId))
+                .ForMember(d => d.RequiredTechnician, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : (int?)s.MaintenanceSchedule.RequiredTechnicians))
+                .ForMember(d => d.EstimatedDuration, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : (double?)s.MaintenanceSchedule.EstimatedDuration)); ;
 
             CreateMap<RepairRequest, RepairRequestBasicDto>()
                 .ForMember(d => d.CreateUser, o => o.MapFrom(s => s.User))
-                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea));
+                .ForMember(d => d.CommonArea, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.CommonAreaObject.CommonArea))
+                .ForMember(d => d.TechniqueId, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : s.MaintenanceSchedule.RequiredTechniqueId))
+                .ForMember(d => d.RequiredTechnician, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : (int?)s.MaintenanceSchedule.RequiredTechnicians))
+                .ForMember(d => d.EstimatedDuration, o => o.MapFrom(s => s.MaintenanceSchedule == null ? null : (double?)s.MaintenanceSchedule.EstimatedDuration)); ;
             CreateMap<RequestTracking, RequestTrackingDto>()
                 .ForMember(d => d.Status, o => o.MapFrom(s => s.Status.ToString()));
 
@@ -240,10 +250,13 @@ namespace AptCare.Api.MapperProfile
                 .ForMember(d => d.IssueCount, o => o.MapFrom(s => s.Issues.Count));
             CreateMap<TechniqueCreateDto, Technique>();
             CreateMap<TechniqueUpdateDto, Technique>();
-            CreateMap<TechnicianTechnique, TechniqueResponseDto>()
+            CreateMap<TechnicianTechnique, TechniqueTechnicanResponseDto>()
                 .ForMember(e => e.TechniqueName, o => o.MapFrom(s => s.Technique.Name))
                 .ForMember(e => e.Description, o => o.MapFrom(s => s.Technique.Description));
-
+            CreateMap<Technique, TechniqueResponseDto>()
+                .ForMember(dest => dest.TechniqueId, opt => opt.MapFrom(src => src.TechniqueId))
+                .ForMember(dest => dest.TechniqueName, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Description));
             //MEDIA
             CreateMap<Media, MediaDto>();
 
@@ -274,7 +287,6 @@ namespace AptCare.Api.MapperProfile
             CreateMap<InvoiceExternalCreateDto, Invoice>()
                 .ForMember(d => d.Status, o => o.MapFrom(s => InvoiceStatus.Draft))
                 .ForMember(d => d.Type, o => o.MapFrom(s => InvoiceType.ExternalContractor))
-                .ForMember(d => d.IsChargeable, o => o.MapFrom(s => false))
                 .ForMember(d => d.CreatedAt, o => o.MapFrom(s => DateTime.Now))
                 .ForMember(d => d.InvoiceAccessories, o => o.MapFrom(s => new List<InvoiceAccessory>()))
                 .ForMember(d => d.InvoiceServices, o => o.MapFrom(s => new List<InvoiceService>()));
@@ -413,6 +425,16 @@ namespace AptCare.Api.MapperProfile
                 .ForMember(d => d.UserRole, o => o.MapFrom(s =>
                     s.User.Account != null ? s.User.Account.Role.ToString() : "Unknown"))
                 .ForMember(d => d.Replies, o => o.Ignore());
+
+            // MaintenanceSchedule mappings
+            CreateMap<MaintenanceSchedule, MaintenanceScheduleDto>()
+                .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
+
+            CreateMap<MaintenanceScheduleCreateDto, MaintenanceSchedule>();
+
+            CreateMap<MaintenanceTrackingHistory, MaintenanceTrackingHistoryDto>()
+                .ForMember(dest => dest.UpdatedByUserName,
+                    opt => opt.MapFrom(src => $"{src.User.FirstName} {src.User.LastName}"));
         }
     }
 }

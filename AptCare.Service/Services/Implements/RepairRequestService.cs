@@ -30,15 +30,7 @@ namespace AptCare.Service.Services.Implements
         private readonly INotificationService _notificationService;
         private readonly IRabbitMQService _rabbitMQService;
 
-        public RepairRequestService(
-            IUnitOfWork<AptCareSystemDBContext> unitOfWork,
-            ILogger<RepairRequestService> logger,
-            IMapper mapper,
-            IUserContext userContext,
-            ICloudinaryService cloudinaryService,
-            IAppointmentAssignService appointmentAssignService,
-            INotificationService notificationService,
-            IRabbitMQService rabbitMQService) : base(unitOfWork, logger, mapper)
+        public RepairRequestService(IUnitOfWork<AptCareSystemDBContext> unitOfWork, ILogger<RepairRequestService> logger, IMapper mapper, IUserContext userContext, ICloudinaryService cloudinaryService, IAppointmentAssignService appointmentAssignService, INotificationService notificationService, IRabbitMQService rabbitMQService) : base(unitOfWork, logger, mapper)
         {
             _userContext = userContext;
             _cloudinaryService = cloudinaryService;
@@ -499,8 +491,8 @@ namespace AptCare.Service.Services.Implements
                                                                        a.AppointmentAssigns.Any(aa => aa.TechnicianId == technicianId))))) &&
                 (apartmentId == null || p.ApartmentId == apartmentId) &&
                 (issueId == null || p.IssueId == issueId) &&
-                (isMaintain == null || 
-                    isMaintain == true && p.MaintenanceScheduleId != null || 
+                (isMaintain == null ||
+                    isMaintain == true && p.MaintenanceScheduleId != null ||
                     isMaintain == false && p.MaintenanceScheduleId == null);
 
             var result = await _unitOfWork.GetRepository<RepairRequest>().GetPagingListAsync(
@@ -844,6 +836,8 @@ namespace AptCare.Service.Services.Implements
                         Note = "Yêu cầu sửa chữa được tự động hoàn thành "
                     });
                 }
+
+                await _unitOfWork.CommitAsync();
             }
             catch (Exception e)
             {
@@ -866,11 +860,14 @@ namespace AptCare.Service.Services.Implements
 
         public async Task CheckMaintenanceScheduleAsync(DateTime now)
         {
+            var today = DateOnly.FromDateTime(now);
             var maintenanceSchedules = await _unitOfWork.GetRepository<MaintenanceSchedule>().GetListAsync(
-                    predicate: p => p.Status == ActiveStatus.Active && p.NextScheduledDate == DateOnly.FromDateTime(now).AddDays(3),
-                    include: i => i.Include(x => x.CommonAreaObject)
-                                        .ThenInclude(x => x.CommonArea)
-                    );
+                predicate: p => p.Status == ActiveStatus.Active &&
+                        (today >= p.NextScheduledDate.AddDays(-3)) &&
+                        (today <= p.NextScheduledDate),
+                include: i => i.Include(x => x.CommonAreaObject)
+                            .ThenInclude(x => x.CommonArea)
+            );
             if (maintenanceSchedules.Count == 0) return;
 
             foreach (var item in maintenanceSchedules)
@@ -911,7 +908,7 @@ namespace AptCare.Service.Services.Implements
 
                 var repairRequest = new RepairRequest
                 {
-                    UserId = managerId, 
+                    UserId = managerId,
                     MaintenanceScheduleId = schedule.MaintenanceScheduleId,
                     Object = schedule.CommonAreaObject.Name,
                     Description = $"Bảo trì định kỳ: {schedule.Description}. " +
@@ -1031,6 +1028,45 @@ namespace AptCare.Service.Services.Implements
                 });
             }
             return true;
+        }
+
+        public async Task<IEnumerable<RepairRequestDto>> GetRepairRequestsByMaintenanceScheduleIdAsync(int maintenanceScheduleId)
+        {
+            var exists = await _unitOfWork.GetRepository<MaintenanceSchedule>()
+                .AnyAsync(x => x.MaintenanceScheduleId == maintenanceScheduleId);
+
+            if (!exists)
+                throw new AppValidationException("Lịch bảo trì không tồn tại.", StatusCodes.Status404NotFound);
+
+            var requests = await _unitOfWork.GetRepository<RepairRequest>().GetListAsync(
+                selector: x => _mapper.Map<RepairRequestDto>(x),
+                predicate: x => x.MaintenanceScheduleId == maintenanceScheduleId,
+                include: i => i
+                    .Include(x => x.RequestTrackings)
+                    .Include(x => x.Appointments)
+                        .ThenInclude(a => a.AppointmentAssigns)
+                    .Include(x => x.Appointments)
+                        .ThenInclude(a => a.AppointmentTrackings)
+                    .Include(x => x.Apartment)
+                        .ThenInclude(a => a.Floor)
+                    .Include(x => x.Apartment)
+                        .ThenInclude(a => a.UserApartments)
+                    .Include(x => x.MaintenanceSchedule)
+                        .ThenInclude(ms => ms.CommonAreaObject)
+                            .ThenInclude(cao => cao.CommonArea)
+                                .ThenInclude(ca => ca.Floor)
+                    .Include(x => x.Issue)
+                        .ThenInclude(i => i.Technique)
+            );
+            foreach (var request in requests)
+            {
+                var medias = await _unitOfWork.GetRepository<Media>().GetListAsync(
+                    selector: s => _mapper.Map<MediaDto>(s),
+                    predicate: p => p.Entity == nameof(RepairRequest) && p.EntityId == request.RepairRequestId
+                );
+                request.Medias = medias.ToList();
+            }
+            return requests;
         }
     }
 }
