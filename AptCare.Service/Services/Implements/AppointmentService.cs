@@ -139,7 +139,7 @@ namespace AptCare.Service.Services.Implements
 
             var medias = await _unitOfWork.GetRepository<Media>().GetListAsync(
                     selector: s => _mapper.Map<MediaDto>(s),
-                    predicate: p => p.Entity == nameof(RepairRequest) && p.EntityId == appointment.RepairRequest.RepairRequestId
+                    predicate: p => p.Entity == nameof(RepairRequest) && p.EntityId == appointment.RepairRequest.RepairRequestId && p.Status == ActiveStatus.Active
                     );
             appointment.RepairRequest.Medias = medias.ToList();
 
@@ -323,7 +323,8 @@ namespace AptCare.Service.Services.Implements
                 var workSlot = await _unitOfWork.GetRepository<WorkSlot>().SingleOrDefaultAsync(
                     predicate: ws => ws.Date == DateOnly.FromDateTime(timeNow) &&
                                      ws.Slot.FromTime <= timeNow.TimeOfDay &&
-                                     ws.Slot.ToTime >= timeNow.TimeOfDay,
+                                     ws.Slot.ToTime >= timeNow.TimeOfDay &&
+                                     ws.TechnicianId == userId,
                     include: i => i.Include(x => x.Slot)
                     );
                 if (workSlot == null)
