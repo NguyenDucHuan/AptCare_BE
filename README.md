@@ -79,12 +79,76 @@ Before running this project, ensure you have:
 
 ## ⚙️ Configuration
 
-1. Create a `.env` file in the `AptCare.Api` directory
+1. Create a `.env` file **inside the `AptCare.Api` directory** (`AptCare.Api/.env`)
 2. Configure your database connection string
 3. Set up authentication keys and secrets
 4. Configure cloud storage credentials (AWS S3, Cloudinary)
 5. Set up email service credentials
 6. Configure Redis and RabbitMQ connection strings
+
+### Example `.env` (place this file at `AptCare.Api/.env`)
+
+> **Important**: Do **not** commit real secrets to GitHub. The values below are **examples** only.
+
+```env
+# ASP.NET Core
+ASPNETCORE_ENVIRONMENT=Development
+ASPNETCORE_URLS=http://+:8080
+
+# Connection String
+ConnectionStrings__DefaultConnection=Host=<HOST>;Port=<PORT>;Database=<DB>;Username=<USER>;Password=<PASSWORD>;SSL Mode=Require;Trust Server Certificate=true
+#ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=aptcare;Username=postgres;Password=12345;SSL Mode=Disable;Trust Server Certificate=true
+
+# JWT
+Jwt__Key=<YOUR_JWT_SECRET>
+Jwt__Issuer=AptCare
+Jwt__Audience=AptCareUsers
+Jwt__ExpirationMinutes=60
+
+# Mail (Gmail STARTTLS/587)
+MailSettings__SystemName=AptCare
+MailSettings__Host=smtp.gmail.com
+MailSettings__Port=587
+MailSettings__Sender=<YOUR_GMAIL>
+MailSettings__Password=<YOUR_GMAIL_APP_PASSWORD>
+
+# Cloudinary
+CloudinarySettings__CloudName=<CLOUD_NAME>
+CloudinarySettings__ApiKey=<API_KEY>
+CloudinarySettings__ApiSecret=<API_SECRET>
+CloudinarySettings__UploadPreset=<UPLOAD_PRESET>
+
+# FCM
+FCMSettings__ServerKey=<FCM_SERVER_KEY>
+FCMSettings__SenderId=<FCM_SENDER_ID>
+FCMSettings__ProjectId=<FCM_PROJECT_ID>
+
+# PayOS
+PAYOS_BASE_URL=https://api.payos.vn
+PAYOS_CLIENT_ID=<PAYOS_CLIENT_ID>
+PAYOS_API_KEY=<PAYOS_API_KEY>
+PAYOS_CHECKSUM_KEY=<PAYOS_CHECKSUM_KEY>
+PAYOS_RETURN_URL=https://aptcare.vn/payment/return
+
+# AWS (Development)
+AWS__AccessKey=<AWS_ACCESS_KEY>
+AWS__SecretKey=<AWS_SECRET_KEY>
+AWS__Region=ap-southeast-1
+AWS__BucketName=aptcare-storage
+
+# Redis
+Redis__Host=<REDIS_HOST>
+Redis__Port=<REDIS_PORT>
+Redis__User=default
+Redis__Password=<REDIS_PASSWORD>
+
+# RabbitMQ
+RabbitMQ__Host=amqps://<USER>:<PASSWORD>@<HOST>/<VHOST>
+RabbitMQ__Port=5672
+RabbitMQ__UserName=<RABBITMQ_USERNAME>
+RabbitMQ__Password=<RABBITMQ_PASSWORD>
+RabbitMQ__VirtualHost=<RABBITMQ_VIRTUALHOST>
+```
 
 ## 🏃 Getting Started
 
